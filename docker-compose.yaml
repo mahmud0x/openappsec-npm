@@ -1,0 +1,43 @@
+version: '3.3'
+# Docker Compose for npm open-appsec integration
+
+services:
+  appsec-npm:
+    container_name: npm-attachment
+    image: 'ghcr.io/openappsec/nginx-proxy-manager-attachment:latest'
+    ipc: host
+    restart: unless-stopped
+    ports:
+      - '80:80' # Public HTTP Port
+      - '443:443' # Public HTTPS Port
+      - '81:81' # Admin Web Port
+    environment:
+      - TZ=Asia/Dhaka
+    volumes:
+      - ./data:/data
+      - ./letsencrypt:/etc/letsencrypt
+      - ./appsec-logs:/ext/appsec-logs
+      - ./appsec-localconfig:/ext/appsec
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+
+  appsec-agent:
+    container_name: appsec-agent
+    build:
+      context: .
+      dockerfile: Dockerfile
+    network_mode: service:appsec-npm
+    ipc: host
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Dhaka
+      - user_email=user@email.com # adjust with your own email
+      - nginxproxymanager=true
+      - autoPolicyLoad=true
+    volumes:
+      - ./appsec-config:/etc/cp/conf
+      - ./appsec-data:/etc/cp/data
+      - ./appsec-logs:/var/log/nano_agent
+      - ./appsec-localconfig:/ext/appsec
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
